@@ -35,7 +35,8 @@ class Fetcher
   end
 end
 
-fetcher = Fetcher.new(*ARGV)
-images = fetcher.fetch_html
-fetcher.fetch_images images
-puts "Completed in #{Time.now - fetcher.start}"
+if ARGV.size == 2
+  fetcher = Fetcher.new(*ARGV)
+  fetcher.fetch_images fetcher.fetch_html
+  puts "Completed in #{Time.now - fetcher.start}"
+end

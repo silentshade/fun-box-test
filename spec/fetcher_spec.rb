@@ -1,45 +1,79 @@
 # encoding: utf-8
-ARGV = ['google.com','/tmp/google']
+#ARGV = [123,'/tmp/google']
 require './fetcher.rb'
 require 'rspec'
+require 'spec_helper'
 
 describe Fetcher do
-  before(:all) do
-    @fetcher = Fetcher.new(*ARGV)
-  end
-  context "#initialize" do
+  let(:fetcher) { Fetcher.new PAGE_URL,TARGET_PATH}
+  describe "#initialize", 'должен создать переменные инстанса' do
+    it "start должен быть Time" do 
+      fetcher.start.should be_a Time 
+    end
+    it "должен сделать uri абсолютным" do
+      uri = PAGE_URL.scan(/^http:\/\//).empty? ? "http://#{PAGE_URL}" : PAGE_URL
+      uri.scan(/^http:\/\//).should_not be_empty
+    end
 
-    it "должен создать переменную класса start" do 
-      @fetcher.start.should be_an_instance_of Time 
+    it "должен сделать URI из uri" do
+      fetcher.uri.should be_a URI
     end
-    context "должен создать переменную класса uri:" do
-      it "она должна быть URI HTTP или HTTPS" do 
-        @fetcher.uri.should be_an_instance_of URI::HTTP or be_an_instance_of URI::HTTPS
+    context "target" do
+      it "должен быть String" do
+        fetcher.target.should be_an_instance_of String
       end
-    end
-    context "должен создать переменную класса target" do
-      it "она должна быть строкой" do
-        @fetcher.target.should be_an_instance_of String
-      end
-      it "она должна заканчиваться на слэш /" do
-        @fetcher.target[-1].should == "/"
+      it "должен заканчиваться на слэш /" do
+        fetcher.target[-1].should == "/"
       end
     end
 
     it "должен создать директорию с путем target если она не существует" do
-      Dir.mkdir(@fetcher.target) unless File.directory?(@fetcher.target)
+      Dir.mkdir(fetcher.target) unless File.directory?(fetcher.target)
     end
 
-    it "должен изменить ткущую директорию на target" do
-      Dir.chdir(@fetcher.target)
+    it "должен изменить текущую директорию на target" do
+      Dir.chdir(fetcher.target)
+    end
+  end
+
+  describe "#fetch_html" do
+    let(:html) { open(fetcher.uri.to_s){|f| f.read.encode('UTF-8')} }
+
+    context "должен получить html" do
+      it "он быть строкой" do
+        html.should be_a String
+      end
+      it "не должен быть пустым" do
+        html.should_not be_empty
+      end
     end
 
-  context "#fetch_html"
-    it "должен вернуть массив со ссылками на избражения" do
-      @fetcher.fetch_html.should be_an_instance_of Array
+    context "должен обработать html" do
+      let(:images) do  
+        (html.scan(/<img.+?src=[\\\'\"]{1,2}(.*?)[\\\'\"]{1,2}/im) + html.scan(/url\s*?\([\\\'\"]{0,2}(.*?)[\\\'\"]{0,2}\)/im)).flatten
+      end
+      it "добавить найденные соответствия в массив images" do
+        images.should be_a Array
+      end
+      context "все элементы массива images" do
+        it "должны быть строками" do
+          images.select{|el| !el.is_a? String}.empty?.should be_true
+        end
+        it "не должны быть пустыми" do
+          images.select{|el| el.empty? }.empty?.should be_true
+        end
+      end
     end
-    it "элементы массива должны быть строками" do
-      @fetcher.fetch_html.select{|el| !el.is_a? String}.empty?.should be_true
+
+  end
+
+  context "#fetch_images" do
+    let(:images) { fetcher.fetch_html }
+    context "должен получить массив images" do
+      it "он должен быть уникальным" do
+        images.uniq.should == images
+      end
     end
+    
   end
 end
