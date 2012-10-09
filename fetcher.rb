@@ -28,8 +28,12 @@ class Fetcher
     Parallel.map(images, :in_threads => 8) do |img|
       src = img.scan(/^http/).empty? ? "#{@uri.scheme}://#{@uri.host}:#{@uri.port}/#{img}" : img
       print "Downloading #{src} to #{@target+File.basename(img)}...\n"
-      open(@target+File.basename(img),'wb') do |image|
-        image << open(src).read rescue print "Can't download image #{src}\n"
+      begin
+        open(@target+File.basename(img),'wb') do |image|
+          image << open(src).read rescue print "Can't download image #{src}\n"
+        end
+      rescue Exception => e
+        puts puts e.message
       end
     end    
   end
